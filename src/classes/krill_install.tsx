@@ -1037,24 +1037,40 @@ adduser ${name} \
 
          await exec(cmd + this.toNull, echo)
          await exec('parted --script ' + this.partitions.installationDevice + ' set 1 boot on' + this.toNull, echo)
+
          // Creazione dei volumi 
          Utils.warning('You will be prompted to give crucial informations to protect your data')
-
-         const volumeSize=32212254720 // 30 GBYTE 32,212,254,720
          Utils.warning('Your passphrase will be not written in any way on the support, so it is literally unrecoverable.')
 
-         Utils.warning('Formatting volume vgegg-root. You will insert a passphrase and confirm it')
+         const luksRootSize = 21474836480 // 20 MB  21,474,836,480
+         const luksSwapSize = 4294967296 // 4GB  4,294,967,296
+
+         // Dobbiamo capire come creare vg-root e vg-sqap
+
+         Utils.warning('Formatting volume vg-root. You will insert a passphrase and confirm it')
          execSync('cryptsetup luksFormat ' + this.partitions.installationDevice + '4', { stdio: 'inherit' })
 
-         Utils.warning('Opening volume vgegg-root and map it in /dev/mapper/vgegg-root')
+         Utils.warning('Opening volume vg-root and map it in /dev/mapper/vg-root')
          Utils.warning('You will insert the same passphrase you choose before')
-         execSync('cryptsetup luksOpen ' + + this.partitions.installationDevice + '4 vgegg-root', { stdio: 'inherit' })
+         execSync('cryptsetup luksOpen ' + this.partitions.installationDevice + '4 vg-root', { stdio: 'inherit' })
 
-         Utils.warning('Formatting volume vgegg-root with ext4')
-         execSync('mkfs.ext2 /dev/mapper/vgegg-root' + this.toNull, { stdio: 'inherit' })
+         Utils.warning('Formatting volume vg-root with ext4')
+         execSync('mkfs.ext4 /dev/mapper/vg-root' + this.toNull, { stdio: 'inherit' })
 
-         Utils.warning('mounting volume vgegg-root in /mnt')
-         execSync('mount /dev/mapper/eggs-users-data /mnt', { stdio: 'inherit' })
+         this.devices.efi.name = this.partitions.installationDevice + '1'
+         this.devices.efi.fsType = 'F 32 -I'
+         this.devices.efi.mountPoint = '/boot/efi'
+
+         this.devices.boot.name = this.partitions.installationDevice + '3'
+
+         this.devices.root.name = '/dev/mapper/vg-root'
+         this.devices.root.fsType = 'ext4'
+         this.devices.root.mountPoint = '/'
+         this.devices.data.name = `none`
+
+         this.devices.swap.name = this.partitions.installationDevice + '2'
+         this.devices.swap.fsType = 'swap'
+         this.devices.swap.mountPoint = 'none'
 
       }
          else if (this.partitions.installationMode === 'full-encrypted' && !this.efi) {}

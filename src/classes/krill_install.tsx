@@ -1027,6 +1027,13 @@ adduser ${name} \
 
          /**
           * formattazione luks, BIOS standard
+          *           filesystem               flags
+          * /dev/sda1 grub2 core.img           bios, grub
+          * /dev/sda2
+          * /dev/sda3
+          * /dev/sda4
+          * 
+          * 
           */
          const cmd = 'parted --script --align minimal ' + this.partitions.installationDevice + ' \
             mklabel gpt \

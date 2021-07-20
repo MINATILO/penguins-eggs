@@ -1023,11 +1023,50 @@ adduser ${name} \
       let retVal = false
 
       await exec('wipefs -a ' + this.partitions.installationDevice + this.toNull)
-      if (this.partitions.installationMode === 'standard' && !this.efi) {
+      if (this.partitions.installationMode === 'full-encrypted' && !this.efi) {
 
          /**
-          * formattazione standard, BIOS working
+          * formattazione luks, BIOS standard
           */
+         const cmd = 'parted --script --align minimal ' + this.partitions.installationDevice + ' \
+            mklabel gpt \
+            mkpart primary 0 1MiB \
+            mkpart primary 1MiB  513MiB \
+            mkpart primary   513MiB  1245MiB \
+            mkpart primary   1245MiB 100%'
+
+         await exec(cmd + this.toNull, echo)
+         await exec('parted --script ' + this.partitions.installationDevice + ' set 1 boot on' + this.toNull, echo)
+         // Creazione dei volumi 
+         Utils.warning('You will be prompted to give crucial informations to protect your data')
+
+         const volumeSize=32212254720 // 30 GBYTE 32,212,254,720
+         Utils.warning('Your passphrase will be not written in any way on the support, so it is literally unrecoverable.')
+
+         Utils.warning('Formatting volume vgegg-root. You will insert a passphrase and confirm it')
+         execSync('cryptsetup luksFormat ' + this.partitions.installationDevice + '4', { stdio: 'inherit' })
+
+         Utils.warning('Opening volume vgegg-root and map it in /dev/mapper/vgegg-root')
+         Utils.warning('You will insert the same passphrase you choose before')
+         execSync('cryptsetup luksOpen ' + + this.partitions.installationDevice + '4 vgegg-root', { stdio: 'inherit' })
+
+         Utils.warning('Formatting volume vgegg-root with ext4')
+         execSync('mkfs.ext2 /dev/mapper/vgegg-root' + this.toNull, { stdio: 'inherit' })
+
+         Utils.warning('mounting volume vgegg-root in /mnt')
+         execSync('mount /dev/mapper/eggs-users-data /mnt', { stdio: 'inherit' })
+
+      }
+         else if (this.partitions.installationMode === 'full-encrypted' && !this.efi) {}
+         /**
+          * formattazione luks, UEFI
+          */
+
+         else if (this.partitions.installationMode === 'standard' && !this.efi) {
+         /**
+          * formattazione standard, BIOS standard
+          */
+
          await exec('parted --script ' + this.partitions.installationDevice + ' mklabel msdos' + this.toNull, echo)
          await exec('parted --script --align optimal ' + this.partitions.installationDevice + ' mkpart primary 1MiB 95%' + this.toNull, echo)
          await exec('parted --script ' + this.partitions.installationDevice + ' set 1 boot on' + this.toNull, echo)

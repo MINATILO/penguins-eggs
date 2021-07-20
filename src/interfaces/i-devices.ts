@@ -16,4 +16,5 @@ export interface IDevices {
    root: IDevice
    data: IDevice
    swap: IDevice
+   luks: IDevice
 }

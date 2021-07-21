@@ -47,6 +47,7 @@ export const depCommon = [
    'isolinux',
    'live-boot',
    'live-boot-initramfs-tools',
+   'lvm2',
    'net-tools',
    'parted',
    'rsync',

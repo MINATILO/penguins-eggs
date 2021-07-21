@@ -1026,13 +1026,27 @@ adduser ${name} \
       if (this.partitions.installationMode === 'full-encrypted' && !this.efi) {
 
          /**
-          * formattazione luks, BIOS standard
-          *           filesystem               flags
-          * /dev/sda1 grub2 core.img           bios, grub
-          * /dev/sda2
-          * /dev/sda3
-          * /dev/sda4
+          * kubuntu formattazione luck con ubuquity
           * 
+          * device    filesystem     fmt   mount     size   flags
+          * /dev/sda1 grub2 core.img                        bios,grub
+          * /dev/sda2 efi-system     fat32 /boot/efi 513MiB boot,esp
+          * /dev/sda3                ext4  /boot     732MiB
+          * /dev/sda4 luks                           30.78GiB
+          * 
+          * /dev/mapper/vgkubuntu-root /               ext4    errors=remount-ro 0       1
+          * # /boot was on /dev/sda3 during installation
+          * UUID=20a55d84-a964-4999-a766-eee40054583b /boot           ext4    defaults        0       2
+          * # /boot/efi was on /dev/sda2 during installation
+          * UUID=A8E3-47E9  /boot/efi       vfat    umask=0077      0       1
+          * /dev/mapper/vgkubuntu-swap_1 none            swap    sw              0       0
+          * 
+          * artisan@kde:~$ ls /dev/mapper/
+          * control  sda4_crypt  vgkubuntu-root  vgkubuntu-swap_1
+          * 
+          * Quindi abbiamo sda4_crypt, nel quale ci sono vgkubuntu-root  vgkubuntu-swap_1
+          * 
+          * /etc/crypttab/
           * 
           */
          const cmd = 'parted --script --align minimal ' + this.partitions.installationDevice + ' \
@@ -1040,44 +1054,58 @@ adduser ${name} \
             mkpart primary 0 1MiB \
             mkpart primary 1MiB  513MiB \
             mkpart primary   513MiB  1245MiB \
-            mkpart primary   1245MiB 100%'
+            mkpart primary 1245MiB 100%'
 
          await exec(cmd + this.toNull, echo)
          await exec('parted --script ' + this.partitions.installationDevice + ' set 1 boot on' + this.toNull, echo)
 
+         /**
+          * LVM2
+          * 
+          * sudo cryptsetup -y -v luksFormat /dev/sda4 
+          * sudo cryptsetup luksOpen /dev/sda4 crypto_sda4
+          * 
+          * A questo punto bisogna creare il volumegroup
+          * 
+          * sudo vgcreate vgeggs /dev/mapper/crypto_sda4
+          * 
+          * Ora i volumi logici root e swap
+          * 
+          * sudo lvcreate -L size -n root vgeggs
+          * sudo lvcreate -L size -n swap vgeggs
+          * 
+          */
+          const luksRootSize = '26GiB' //21474836480 // 20 MB  21,474,836,480
+          const luksSwapSize = '4GiB' // 4294967296 // 4GB  4,294,967,296
+ 
          // Creazione dei volumi 
          Utils.warning('You will be prompted to give crucial informations to protect your data')
          Utils.warning('Your passphrase will be not written in any way on the support, so it is literally unrecoverable.')
 
-         const luksRootSize = 21474836480 // 20 MB  21,474,836,480
-         const luksSwapSize = 4294967296 // 4GB  4,294,967,296
+          await exec('cryptsetup -y -v luksFormat ' + this.partitions.installationDevice + '4')
+          await exec('cryptsetup luksOpen ' + this.partitions.installationDevice + '4 crypto_sda4')
+          await exec('vgcreate vgeggs /dev/mapper/crypto_sda4')
+          await exec('lvcreate -L ' + luksRootSize + ' -n root vgeggs')
+          await exec('lvcreate -L ' + luksSwapSize + ' -n swap vgeggs')
 
-         // Dobbiamo capire come creare vg-root e vg-sqap
+          execSync('mkfs.ext4 /dev/mapper/vgeggs-root' + this.toNull, { stdio: 'inherit' })
+          execSync('mkswap /dev/mapper/vgeggs-swap' + this.toNull, { stdio: 'inherit' })
 
-         Utils.warning('Formatting volume vg-root. You will insert a passphrase and confirm it')
-         execSync('cryptsetup luksFormat ' + this.partitions.installationDevice + '4', { stdio: 'inherit' })
-
-         Utils.warning('Opening volume vg-root and map it in /dev/mapper/vg-root')
-         Utils.warning('You will insert the same passphrase you choose before')
-         execSync('cryptsetup luksOpen ' + this.partitions.installationDevice + '4 vg-root', { stdio: 'inherit' })
-
-         Utils.warning('Formatting volume vg-root with ext4')
-         execSync('mkfs.ext4 /dev/mapper/vg-root' + this.toNull, { stdio: 'inherit' })
-
-         this.devices.efi.name = this.partitions.installationDevice + '1'
+         this.devices.efi.name = this.partitions.installationDevice + '2'
          this.devices.efi.fsType = 'F 32 -I'
          this.devices.efi.mountPoint = '/boot/efi'
 
          this.devices.boot.name = this.partitions.installationDevice + '3'
 
-         this.devices.root.name = '/dev/mapper/vg-root'
+         this.devices.root.name = '/dev/mapper/vgeggs-root'
          this.devices.root.fsType = 'ext4'
          this.devices.root.mountPoint = '/'
          this.devices.data.name = `none`
 
-         this.devices.swap.name = this.partitions.installationDevice + '2'
+         this.devices.swap.name = '/dev/mapper/vgeggs-swap'
          this.devices.swap.fsType = 'swap'
          this.devices.swap.mountPoint = 'none'
+         retVal=true
 
       }
          else if (this.partitions.installationMode === 'full-encrypted' && !this.efi) {}

@@ -38,9 +38,9 @@ export default function Partitions({ installationDevice, installationMode, files
     * finestra with=59
     */
 
-    let bios = 'standard'
+    let bootMode = 'BIOS'
     if (fs.existsSync('/sys/firmware/efi/efivars')) {
-        bios = 'UEFI'
+        bootMode = 'UEFI'
     }
     let partitions = {} as IPartitions
     if (fs.existsSync(configRoot + 'modules/partition.conf')) {
@@ -64,7 +64,7 @@ export default function Partitions({ installationDevice, installationMode, files
                                 <Text underline={true}>erase disk:</Text><Text> this will </Text><Text color="red">delete </Text><Text>all data currently</Text>
                             </Box>
                             <Box><Text>present on the selected storage device</Text></Box>
-                            <Box><Text>BIOS: </Text><Text color="cyan">{bios}</Text></Box>
+                            <Box><Text>Boot mode: </Text><Text color="cyan">{bootMode}</Text></Box>
                             <Newline />
                             <Box><Text>Installation device: </Text><Text color="cyan">{installationDevice}</Text></Box>
                             <Box><Text>Installation mode: </Text><Text color="cyan">{installationMode}</Text></Box>

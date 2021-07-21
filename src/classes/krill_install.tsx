@@ -132,6 +132,7 @@ export default class Hatching {
 
       this.distro = new Distro(this.remix)
 
+      // Warning: this.efi will ALLWAYS be set true with full-encrypted installation
       this.efi = fs.existsSync('/sys/firmware/efi/efivars')
    }
 
@@ -212,7 +213,7 @@ export default class Hatching {
          /**
           * RESTORE USERS DATA
           */
-         
+
          if (fs.existsSync('/run/live/medium/live/luks-users-data')) {
             message = "Restore users data from backup "
             percent = 0.37
@@ -1048,18 +1049,6 @@ adduser ${name} \
           * 
           * /etc/crypttab/
           * 
-          */
-         const cmd = 'parted --script --align minimal ' + this.partitions.installationDevice + ' \
-            mklabel gpt \
-            mkpart primary 0 1MiB \
-            mkpart primary 1MiB  513MiB \
-            mkpart primary   513MiB  1245MiB \
-            mkpart primary 1245MiB 100%'
-
-         await exec(cmd + this.toNull, echo)
-         await exec('parted --script ' + this.partitions.installationDevice + ' set 1 boot on' + this.toNull, echo)
-
-         /**
           * LVM2
           * 
           * sudo cryptsetup -y -v luksFormat /dev/sda4 
@@ -1075,22 +1064,43 @@ adduser ${name} \
           * sudo lvcreate -L size -n swap vgeggs
           * 
           */
-          const luksRootSize = '26GiB' //21474836480 // 20 MB  21,474,836,480
-          const luksSwapSize = '4GiB' // 4294967296 // 4GB  4,294,967,296
- 
-         // Creazione dei volumi 
+
+         const cmd = 'parted --script --align minimal ' + this.partitions.installationDevice + ' \
+            mklabel gpt \
+            mkpart primary 0 1MiB \
+            mkpart primary 1MiB  513MiB \
+            mkpart primary   513MiB  1245MiB \
+            mkpart primary 1245MiB 100%'
+
+         await exec(cmd + this.toNull, echo)
+         await exec('parted --script ' + this.partitions.installationDevice + ' set 1 boot on' + this.toNull, echo)
+
          Utils.warning('You will be prompted to give crucial informations to protect your data')
          Utils.warning('Your passphrase will be not written in any way on the support, so it is literally unrecoverable.')
 
-          await exec('cryptsetup -y -v luksFormat ' + this.partitions.installationDevice + '4')
-          await exec('cryptsetup luksOpen ' + this.partitions.installationDevice + '4 crypto_sda4')
-          await exec('vgcreate vgeggs /dev/mapper/crypto_sda4')
-          await exec('lvcreate -L ' + luksRootSize + ' -n root vgeggs')
-          await exec('lvcreate -L ' + luksSwapSize + ' -n swap vgeggs')
+         const luksRootSize = '26GiB' //21474836480 // 20 MB  21,474,836,480
+         const luksSwapSize = '4GiB' // 4294967296 // 4GB  4,294,967,296
 
-          execSync('mkfs.ext4 /dev/mapper/vgeggs-root' + this.toNull, { stdio: 'inherit' })
-          execSync('mkswap /dev/mapper/vgeggs-swap' + this.toNull, { stdio: 'inherit' })
+         // Creazione volume crypto_sda4
+         await exec('cryptsetup -y -v luksFormat ' + this.partitions.installationDevice + '4')
+         await exec('cryptsetup luksOpen ' + this.partitions.installationDevice + '4 crypto_sda4')
 
+         // Creazione volume group vgeggs
+         await exec('vgcreate vgeggs /dev/mapper/crypto_sda4')
+
+         // Creazione volumi logici root e swap
+         await exec('lvcreate -L ' + luksRootSize + ' -n root vgeggs')
+         await exec('lvcreate -L ' + luksSwapSize + ' -n swap vgeggs')
+
+         // perhaps we format late...
+         execSync('mkfs.ext4 /dev/mapper/vgeggs-root' + this.toNull, { stdio: 'inherit' })
+         execSync('mkswap /dev/mapper/vgeggs-swap' + this.toNull, { stdio: 'inherit' })
+
+
+         // but, because gpt table We need efi
+         this.efi = true
+
+         // and this is the schema
          this.devices.efi.name = this.partitions.installationDevice + '2'
          this.devices.efi.fsType = 'F 32 -I'
          this.devices.efi.mountPoint = '/boot/efi'
@@ -1105,15 +1115,15 @@ adduser ${name} \
          this.devices.swap.name = '/dev/mapper/vgeggs-swap'
          this.devices.swap.fsType = 'swap'
          this.devices.swap.mountPoint = 'none'
-         retVal=true
+         retVal = true
 
       }
-         else if (this.partitions.installationMode === 'full-encrypted' && !this.efi) {}
-         /**
-          * formattazione luks, UEFI
-          */
+      else if (this.partitions.installationMode === 'full-encrypted' && !this.efi) { }
+      /**
+       * formattazione luks, UEFI
+       */
 
-         else if (this.partitions.installationMode === 'standard' && !this.efi) {
+      else if (this.partitions.installationMode === 'standard' && !this.efi) {
          /**
           * formattazione standard, BIOS standard
           */
@@ -1123,7 +1133,7 @@ adduser ${name} \
          await exec('parted --script ' + this.partitions.installationDevice + ' set 1 boot on' + this.toNull, echo)
          await exec('parted --script --align optimal ' + this.partitions.installationDevice + ' mkpart primary 95% 100%' + this.toNull, echo)
 
-         this.devices.efi.name = `none`
+
          this.devices.boot.name = `none`
          this.devices.root.name = this.partitions.installationDevice + '1'
          this.devices.root.fsType = 'ext4'

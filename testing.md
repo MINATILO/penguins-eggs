@@ -45,8 +45,9 @@ create a gtp table and there is boot and efi partition completed of all.
 
 Probably the error come to here.
 
+Switching on this.efi after setip don't copy EFI files... I think they are copied by grub-install
 
-
+We must stop the process before grub-install and see the situation.
 
 
 

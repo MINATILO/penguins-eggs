@@ -213,6 +213,8 @@ export default class Ovary {
             Utils.warning('Creating volume luks-users-data of ' + Utils.formatBytes(volumeSize, 0))
             execSync('dd if=/dev/zero of=/tmp/luks-users-data bs=1 count=0 seek=' + Utils.formatBytes(volumeSize, 0) + this.toNull, { stdio: 'inherit' })
 
+            // execSync
+            // Returns: <Buffer> | <string> The stdout from the command.
             Utils.warning('Formatting volume luks-users-data. You will insert a passphrase and confirm it')
             execSync('cryptsetup luksFormat /tmp/luks-users-data', { stdio: 'inherit' })
 

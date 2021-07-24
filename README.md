@@ -37,7 +37,7 @@ Try penguins-eggs yes, it is a console utility - no GUI - but don't be scared, p
 Starting with version 7.6.x, an addons architecture was added to eggs, allowing third parties to develop extensions. Note that currently we have an extension for the theme that includes both branding calamares, link and installer icon. In addition, also as an addon has been developed choose between GUI or CLI installation, adjust the video resolution, remote support, etc.
 
 ### backup
-From version 8.0.10 You can use the backup mode by simply adding --backup in the produce command. This way eggs will save your users data and accounts and will not add a live user, you will have to log in with the main user of your system with the his password. **Note:** since eggs always configures autologin, you may have a security risk with valuable data. Use this option only for your personal stuff and do not share the iso on the network.
+From version 8.0.30 You can use the backup mode by simply adding --backup to the produce command: **sudo eggs produce --backup**. In this way eggs will save your users data and accounts in a crypted luks2 volume who is restored just after the installation only if you are able to introduce the passpharafe decided by the ower.
 
 ### krill
 Starting with eggs 8.0.0 I included a new CLI installer named krill. krill let you to install your system in a nice CLI interface using the same, configuration created by eggs for [calamares](calamares.io). This lead to have "about the same" experience installing, from old distros to new one and for GUI and CLI. To force using krill in place of calamares in a GUI system just: **sudo eggs install --cli**
@@ -51,12 +51,12 @@ I suggest to leave the default values unchanged during the development of your r
 yolk so called - staying on the subject of eggs - is a local repository included in the livecd that contains a minimum of indispensable packages during installation. Thanks to yolk, you can safely install your system without the need of an active internet connection.
 
 ## What distributions can I use?
-eggs was born on Debian strecth/buster, but actually full support Debian from jessie to sid (bullseye), Devuan beowulf, Ubuntu focal, bionic and derivatives. I actually try it against Debian varius versions, before releases. I tried it successfully in LMDE 4 debbie, and deepin. eggs, generally must work with all the derivates from that distros.
+eggs was born on Debian strecth/buster, but actually full support Debian from jessie to sid (bullseye), Devuan beowulf, Ubuntu focal, bionic and derivatives. I actually try it against Debian varius versions before to release it. I tried it successfully in LMDE 4 debbie, deepin and a lot of others. eggs, generally must work with all the derivates from that distros.
 
 Some examples of iso images remastered with eggs are in the [sourceforge page of the project](https://sourceforge.net/projects/penguins-eggs/files/iso/). 
 
 ## What architecture can I use?
-From eggs v. 8.0.4 I'm releasing eggs in 4 differents architectures: **i386**, **amd64**, **arm64** and **armel**. eggs - at the moment - produce in i386 and amd64, but can be installed already on arm64 and armel. This mean who it is possible to install it in [raspberrypi](https://www.raspberrypi.org/), but again not possible to produce a [Raspberry Pi OS](https://www.raspberrypi.org/software/) egg in armel or arm64. I'm just working now to complete this step. 
+Eggs is realeased in 4 differents architectures: **i386**, **amd64**, **arm64** and **armel**. eggs - at the moment - produce in i386 and amd64, but can be installed already on arm64 and armel. This mean who it is possible to install it in [raspberrypi](https://www.raspberrypi.org/), but again not possible to produce a [Raspberry Pi OS](https://www.raspberrypi.org/software/) egg in armel or arm64. I'm working now to complete this step and I hope to receive good news from Mexico.
 
 **Note:** Of course it is possible to produce iso for [Raspberry Pi Desktop](https://downloads.raspberrypi.org/rpd_x86/images/) amd64 based.
 
@@ -64,18 +64,18 @@ From eggs v. 8.0.4 I'm releasing eggs in 4 differents architectures: **i386**, *
 eggs is released as deb package and npm package. Most users need just deb version, if you already use nodejs the npm package can be installed too, 
 
 ## deb packages
-eggs is released deb packages for i386 and amd64 architectures. Due the characteristic of eggs, they can installed in Debian, Devuan or Ubuntu based distros, withouth worries about different versions, except for the architecture. Lately was added scripts for preinst, postinst, prerm and postrm not presents in the original.
+eggs is released as deb package for i386, amd64, armel and arm64 architectures. Due the characteristic of eggs, they can installed in Debian, Devuan or Ubuntu based distros, withouth worries about different versions, except for the architecture. The eggs package actually, bring inside alla the necessary scripts and dependencies management.
 
 ### Install
 This simplest way to install eggs is download the [package eggs](https://sourceforge.net/projects/penguins-eggs/files/packages-deb/) from [sourceforge page of the project](https://sourceforge.net/projects/penguins-eggs/) and install it
 
 ```
-sudo dpkg -i eggs_8.0.0-1_amd64.deb
+sudo dpkg -i eggs_8.0.30-1_amd64.deb
 ```
 
 or, on a i386 system:
 ```
-sudo dpkg -i eggs_8.0.0-1_i386.deb
+sudo dpkg -i eggs_8.0.30-1_i386.deb
 ```
 ### update
 The fastest way to use sudo eggs update and choose basket. Eggs let you to select the last 4 versions on the [basket](https://sourceforge.net/projects/penguins-eggs/files/packages-deb/) and install it.
